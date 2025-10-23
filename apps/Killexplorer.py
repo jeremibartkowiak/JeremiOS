@@ -13,6 +13,7 @@ def restart_explorer():
 root = tk.Tk()
 root.title("Explorer Control")
 root.geometry("300x150")
+root.attributes('-topmost', True)
 
 tk.Button(root, text="Kill Explorer", command=kill_explorer, bg="red", fg="white").pack(pady=10)
 tk.Button(root, text="Restart Explorer", command=restart_explorer, bg="green", fg="white").pack(pady=10)

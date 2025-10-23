@@ -13,6 +13,7 @@ def on_button_click(value):
 
 calc_app = tk.Tk()
 calc_app.title("Calculator")
+calc_app.attributes('-topmost', True)
 
 entry_var = tk.StringVar()
 entry = tk.Entry(calc_app, textvariable=entry_var, font=("Helvetica", 24), justify='right')

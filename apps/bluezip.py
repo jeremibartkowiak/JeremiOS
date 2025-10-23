@@ -107,6 +107,7 @@ root.title("BlueZIP")
 root.geometry("600x500")
 root.resizable(True, True)
 root.configure(bg="lightblue")
+root.attributes('-topmost', True)
 
 # Add a title label
 title_label = tk.Label(
