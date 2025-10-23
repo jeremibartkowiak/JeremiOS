@@ -1,4 +1,4 @@
-# JeremiOS v1.0.0 - Python Desktop Environment 🖥️
+# JeremiOS - Python Desktop Environment 🖥️
 
 **JeremiOS** is a custom desktop environment built entirely with Python and Tkinter, mimicking a full operating system experience with a modern UI and practical applications.
 
