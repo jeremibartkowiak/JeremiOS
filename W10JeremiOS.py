@@ -362,12 +362,48 @@ class DesktopApp:
         try:
             extension = os.path.splitext(path)[1].lower()
             if extension == '.py':
-                # Use the Python interpreter to execute the script
-                python_executable = sys.executable
-                subprocess.Popen([python_executable, path], cwd=os.path.dirname(path))
+                # Find system Python to execute the script
+                if os.name == 'nt':  # Windows
+                    # Try common Python executable paths
+                    python_commands = ['python', 'py', 'python3']
+                    # Use CREATE_NO_WINDOW flag to hide console window
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = 0  # SW_HIDE
+                else:  # macOS/Linux
+                    python_commands = ['python3', 'python']
+                    startupinfo = None
+
+                # Try each command until one works
+                for python_cmd in python_commands:
+                    try:
+                        if os.name == 'nt':
+                            subprocess.Popen([python_cmd, path],
+                                             cwd=os.path.dirname(path),
+                                             startupinfo=startupinfo)
+                        else:
+                            # On Unix-like systems, use nohup to detach from terminal
+                            subprocess.Popen([python_cmd, path],
+                                             cwd=os.path.dirname(path),
+                                             stdout=subprocess.DEVNULL,
+                                             stderr=subprocess.DEVNULL)
+                        return  # Success, exit the function
+                    except FileNotFoundError:
+                        continue
+
+                # If no Python command worked, show error
+                messagebox.showerror("Python Not Found",
+                                     "Could not find Python interpreter to execute the script.\n"
+                                     "Make sure Python is installed and in your PATH.")
             else:
                 # Execute other applications directly
-                subprocess.Popen([path], cwd=os.path.dirname(path))
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = 0
+                    subprocess.Popen([path], cwd=os.path.dirname(path), startupinfo=startupinfo)
+                else:
+                    subprocess.Popen([path], cwd=os.path.dirname(path))
         except Exception as e:
             messagebox.showerror("Execution Error", f"Failed to execute app: {e}")
 
