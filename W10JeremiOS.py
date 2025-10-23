@@ -362,39 +362,18 @@ class DesktopApp:
         try:
             extension = os.path.splitext(path)[1].lower()
             if extension == '.py':
-                # Find system Python to execute the script
-                if os.name == 'nt':  # Windows
-                    # Try common Python executable paths
-                    python_commands = ['python', 'py', 'python3']
-                    # Use CREATE_NO_WINDOW flag to hide console window
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    startupinfo.wShowWindow = 0  # SW_HIDE
-                else:  # macOS/Linux
-                    python_commands = ['python3', 'python']
-                    startupinfo = None
-
-                # Try each command until one works
-                for python_cmd in python_commands:
-                    try:
-                        if os.name == 'nt':
-                            subprocess.Popen([python_cmd, path],
-                                             cwd=os.path.dirname(path),
-                                             startupinfo=startupinfo)
-                        else:
-                            # On Unix-like systems, use nohup to detach from terminal
-                            subprocess.Popen([python_cmd, path],
-                                             cwd=os.path.dirname(path),
-                                             stdout=subprocess.DEVNULL,
-                                             stderr=subprocess.DEVNULL)
-                        return  # Success, exit the function
-                    except FileNotFoundError:
-                        continue
-
-                # If no Python command worked, show error
-                messagebox.showerror("Python Not Found",
-                                     "Could not find Python interpreter to execute the script.\n"
-                                     "Make sure Python is installed and in your PATH.")
+                # Try different approaches
+                success = self.try_execute_python(path)
+                if not success:
+                    messagebox.showerror(
+                        "Execution Failed",
+                        "Could not execute Python script.\n\n"
+                        "Possible reasons:\n"
+                        "• Python is not installed\n"
+                        "• Python is not in PATH\n"
+                        "• File association not set\n\n"
+                        "Please install Python or set file associations for .py files."
+                    )
             else:
                 # Execute other applications directly
                 if os.name == 'nt':
@@ -406,6 +385,70 @@ class DesktopApp:
                     subprocess.Popen([path], cwd=os.path.dirname(path))
         except Exception as e:
             messagebox.showerror("Execution Error", f"Failed to execute app: {e}")
+
+    def try_execute_python(self, path):
+        """Try different methods to execute Python script."""
+        methods = [
+            self._try_python_command,
+            self._try_windows_assoc,
+            self._try_unix_shebang
+        ]
+
+        for method in methods:
+            if method(path):
+                return True
+        return False
+
+    def _try_python_command(self, path):
+        """Try using python command."""
+        commands = ['python', 'python3', 'py'] if os.name == 'nt' else ['python3', 'python']
+
+        for cmd in commands:
+            try:
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = 0
+                    process = subprocess.Popen([cmd, path],
+                                               cwd=os.path.dirname(path),
+                                               startupinfo=startupinfo,
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL)
+                else:
+                    process = subprocess.Popen([cmd, path],
+                                               cwd=os.path.dirname(path),
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL)
+                return process.poll() is None
+            except:
+                continue
+        return False
+
+    def _try_windows_assoc(self, path):
+        """Try using Windows file association."""
+        if os.name == 'nt':
+            try:
+                os.startfile(path)
+                return True
+            except:
+                pass
+        return False
+
+    def _try_unix_shebang(self, path):
+        """Try making executable and using shebang (Unix)."""
+        if os.name != 'nt':
+            try:
+                # Make file executable
+                os.chmod(path, os.stat(path).st_mode | 0o111)
+                # Execute directly (uses shebang)
+                subprocess.Popen([path],
+                                 cwd=os.path.dirname(path),
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+                return True
+            except:
+                pass
+        return False
 
     def open_settings(self):
         """Open the Settings window."""
